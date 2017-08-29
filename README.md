@@ -25,8 +25,8 @@
 ### 进展 Progress
      [x] Array
      [x] Collection
-     [] Function
-     [] Math
+     [x] Function
+     [x] Math
      [] Number
      [] Object
      [] String

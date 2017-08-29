@@ -1343,29 +1343,402 @@ var luciferchiu = {
    */
   sortBy: function(collection, iteratee = this.identity) {
     var set = Object.values(collection)
-    if(Array.isArray(iteratee)) {
-      iteratee.forEach(it => sortByHelp(set,function(o){return o[it]}))
-    }else{
+    if (Array.isArray(iteratee)) {
+      iteratee.forEach(it => sortByHelp(set, function(o) {
+        return o[it]
+      }))
+    } else {
       iteratee = this.iteratee2fn(iteratee)
-      sortByHelp(set,iteratee)
+      sortByHelp(set, iteratee)
     }
     return set
-    
-    function sortByHelp(ary,iteratee){
-      for(let i = 1;i < set.length;i++) {
-        for(let j = 0;j < i;j++) {
-          if(iteratee(set[i]) < iteratee(set[j])){
-            set.splice(j,0,set[i])
-            set.splice(i+1,i)
+
+    function sortByHelp(ary, iteratee) {
+      for (let i = 1; i < set.length; i++) {
+        for (let j = 0; j < i; j++) {
+          if (iteratee(set[i]) < iteratee(set[j])) {
+            set.splice(j, 0, set[i])
+            set.splice(i + 1, i)
           }
         }
       }
     }
   },
 
+  //Function函数方法*******************************************************
+
+  /**
+   * before的反向函数，创建一个函数，当被调用n次或更多次后马上出发func
+   * @param  {[number]} n    [func 方法应该在调用多少次后才执行]
+   * @param  {[Function]} func [用来限定的函数]
+   * @return {[Function]}      [返回新的限定函数]
+   */
+  after: function(n, func) {
+    var count = 0
+    return function(...args) {
+      count++
+      if (count >= n) {
+        return func.apply(this, ...args)
+      }
+    }
+  },
+
+  /**
+   * 创建一个调用func的函数。调用func时最多接受 n个参数，忽略多出的参数
+   * @param  {[Function]} func [需要被限制参数个数的函数]
+   * @param  {[Number]} n    [限制的参数数量]
+   * @return {[Function]}      [返回新的覆盖函数]
+   */
+  ary: function(func, n = fun.length) {
+    return function(...args) {
+      args.length = n
+      return func.apply(this, args)
+    }
+  },
+
+  /**
+   * 创建一个调用func的函数，通过this绑定和创建函数的参数调用func，调用次数不超过 n 次。 之后再调用这个函数，将返回一次最后调用func的结果。
+   * @param  {[number]} n    [限制调用func 的次数]
+   * @param  {[Function]} func [限制执行的函数]
+   * @return {[Function]}      [返回新的限定函数]
+   */
+  before: function(n, func) {
+    var count = 0,
+      last
+    return function(...args) {
+      count++
+      if (count <= n) {
+        last = func.apply(this, args)
+      }
+      return last
+    }
+  },
+
+
+  /**
+   * 创建一个调用func的函数，thisArg绑定func函数中的 this (愚人码头注 ，并且func函数会接收partials附加参数。 
+   * @param  {[Function]}    func      [description]
+   * @param  {[*]}    thisarg   [绑定的this对象]
+   * @param  {...[*]} fixedArgs [附加的部分参数]
+   * @return {[Function]}              [返回新的绑定函数]
+   */
+  bind: function(func, thisarg, ...fixedArgs) {
+    var self = this
+    if (fixedArgs.includes(self)) {
+      return function(...restArgs) {
+        fixedArgs.forEach((it, index) => it === self ? fixedArgs.splice(index, 1, restArgs.shift()) : void 0)
+        return func.call(thisarg, ...fixedArgs)
+      }
+    } else {
+      return function(...restArgs) {
+        return func.call(thisarg, ...fixedArgs, ...restArgs)
+      }
+    }
+  },
+
+
+  /**
+   * 创建一个在object[key]上的函数,通过接收partials附加参数 
+   * @param  {[Object]}    object    [需要绑定函数的对象]
+   * @param  {[string]}    key       [需要绑定函数对象的键]
+   * @param  {...[*]} fixedArgs [附加的部分参数]
+   * @return {[Function]}              [返回新的绑定函数]
+   */
+  bindKey: function(object, key, ...fixedArgs) {
+    return this.bind(object[key], object, ...fixedArgs)
+  },
+
+
+  /**
+   * 柯里化
+   * @param  {[Function]} func  [用来柯里化的函数]
+   * @param  {[number]} arity [需要提供给 func 的参数数量]
+   * @return {[Function]}       [返回新的柯里化函数]
+   */
+  curry: function(func, arity = func.length) {
+    var self = this
+    return function(...args) {
+      if (args.length < arity || args.includes(self)) {
+        return self.curry(self.partial(func, ...args), arity - args.length)
+      } else {
+        return func(...args)
+      }
+    }
+  },
+
+  /**
+   * 类似curry，不过接受参数的方式用的partialRight，也就是从右往左开始柯丽化
+   * @param  {[Function]} func  [用来柯里化（curry）的函数]
+   * @param  {[number]} arity [需要提供给 func 的参数数量]
+   * @return {[Function]}       [返回新的柯里化（curry）函数]
+   */
+  curryRight: function(func, arity = func.length) {
+    var self = this
+    return function(...args) {
+      if (args.length < arity || args.includes(self)) {
+        return self.curryRight(self.partialRight(func, ...args), arity - args.length)
+      } else {
+        return func(...args)
+      }
+    }
+  },
+
+  /**
+   * 创建一个函数。 该函数调用 func，并传入预设的 partials 参数
+   * @param  {[Function]}    func     [需要预设的函数]
+   * @param  {...[*]} partials [预设的参数]
+   * @return {[Function]}             [返回预设参数的函数]
+   */
+  partial: function(func, ...partials) {
+    var self = this
+    if (partials.includes(this)) {
+      return function(...placeArgs) {
+        partials.forEach((it, index) => it === self ? partials.splice(index, 1, placeArgs.shift()) : void 0)
+        return func(...partials)
+      }
+    } else {
+      return func.bind(null, ...partials)
+    }
+  },
+
+  /**
+   * 我曹，这几个占位符要搞死我了。。。
+   * 终于做到和lodash一样了，不容易不容易
+   * @param  {[type]}    func     [description]
+   * @param  {...[type]} partials [description]
+   * @return {[type]}             [description]
+   */
+  partialRight: function(func, ...partials) {
+    var self = this
+    if (partials.includes(this)) {
+      return function(...placeArgs) {
+        partials.forEach((it, index) => it === self ? partials.splice(index, 1, placeArgs.shift()) : void 0)
+        return func(...partials)
+      }
+    } else {
+      return function(...restArgs) {
+        return func.call(null, ...restArgs, ...partials)
+      }
+    }
+  },
+
+
+  /**
+   * 防抖，从上一次被调用后，延迟wait毫秒还有再调用func方法
+   * @param  {[Function]}  func             [要防抖动的函数]
+   * @param  {Number}  wait             [需要延迟的毫秒数]
+   * @param  {Boolean} options.leading  [指定在延迟开始前调用]
+   * @param  {Number}  options.maxWait  [允许被延迟的最大值]
+   * @param  {[boolean]}  options.trailing [指定在延迟结束后调用]
+   * @return {[Function]}                   [返回新的 debounced（防抖动）函数]
+   */
+  debounce: function(func, wait = 0, {
+    leading = false,
+    maxWait = 0,
+    trailing = true
+  } = {}) {
+    let self, xargs, timer, timeLast
+    let firstInvoke = true
+
+    function invokeFunc(...args) {
+      func.call(self, ...args)
+    }
+
+    return function(...args) {
+      let self = this
+      const timeNow = +new Date()
+
+      clearTimeout(timer)
+
+      if (leading && firstInvoke) {
+        firstInvoke = false
+        invokeFunc(...args)
+      }
+
+      if (!timeLast) {
+        timeLast = timeNow
+      }
+
+      if (maxWait != 0 && timeNow - timeLast >= maxWait) {
+        invokeFunc(...args)
+        timeLast = timeNow
+      } else if (trailing) {
+        timer = setTimeout(function() {
+          invokeFunc(...args)
+        }, wait)
+      }
+    }
+  },
+
+  /**
+   * 创建一个节流函数，在 wait 秒内最多执行 func 一次的函数
+   * 直接调用debounce的maxWait即可实现
+   * @param  {[Function]}  func             [ 要节流的函数]
+   * @param  {Number}  wait             [需要节流的毫秒]
+   * @param  {boolean} options.leading  [指定调用在节流开始前]
+   * @param  {[boolean]}  options.trailing [指定调用在节流结束后]
+   * @return {[Function]}                   [返回节流的函数]
+   */
+  throttle: function(func, wait = 0, {
+    leading = true,
+    trailing = true
+  } = {}) {
+    return this.debounce(func, wait, {
+      leading,
+      maxWait: wait,
+      trailing,
+
+    })
+  },
+
+  //Math方法****************************************************
+
+  /**
+   * 加法
+   * @param {[number]} augend [description]
+   * @param {[number]} addend [description]
+   * @return {number}  
+   */
+  add: function(augend, addend) {
+    return augend + addend
+  },
+
+  /**
+   * 向上取整
+   * @param  {[number]} number    [待处理的数字]
+   * @param  {Number} precision [向上取整的的精度]
+   * @return {[number]}           [返回向上舍入的值]
+   */
+  ceil: function(number, precision = 0) {
+    return Math.ceil(number * 10 ** precision) / 10 ** precision
+  },
+
+  /**
+   * 相除
+   * @param  {[number]} dividend [被除数]
+   * @param  {[number]} divisor  [除数]
+   * @return {[number]}          [结果]
+   */
+  divide: function(dividend, divisor) {
+    return dividend / divisor
+  },
+
+  /**
+   * 向下取整
+   * @param  {[number]} number    [要向下取整的值]
+   * @param  {Number} precision [向下取整的精度]
+   * @return {[number]}           [取整结果]
+   */
+  floor: function(number, precision = 0) {
+    return Math.floor(number * 10 ** precision) / 10 ** precision
+  },
+
+  /**
+   * 计算array中的最大值
+   * @param  {[Array]} array [description]
+   * @return {[*]}       [description]
+   */
+  max: function(array) {
+    return array.length === 0 || array === undefined ? undefined : Math.max(...array)
+  },
+
+  /**
+   * 类似max，接受一个itratee来调用array中的元素，再比较
+   * @param  {[Array]} array    [要迭代的数组]
+   * @param  {[Function]} iteratee [调用每个元素的迭代函数]
+   * @return {[*]}          [返回最大的值]
+   */
+  maxBy: function(array, iteratee = this.identity) {
+    var iteratee = this.iteratee2fn(iteratee)
+    return array.reduce((acuu, curr) => iteratee(acuu) > iteratee(curr) ? acuu : curr)
+  },
+
+  /**
+   * 计算 array 的平均值
+   * @param  {[Array]} array [要迭代的数组]
+   * @return {[number]}       [返回平均值]
+   */
+  mean: function(array) {
+    return this.meanBy(array)
+  },
+
+  /**
+   * 迭代版求平均值
+   * @param  {[Array]} array    [要迭代的数组]
+   * @param  {[Function]} iteratee [调用每个元素的迭代函数]
+   * @return {[number]}          [返回平均值]
+   */
+  meanBy: function(array, iteratee = this.identity) {
+    return this.sumBy(array, iteratee) / array.length
+  },
+
+  /**
+   * 计算 array 中的最小值
+   * @param  {[Array]} array [要迭代的数组]
+   * @return {[*]}       [返回最小的值]
+   */
+  min: function(array) {
+    return minBy(array)
+  },
+
+  /**
+   * 类似min，不过接收一个iteratee函数来生成排序标准
+   * @param  {[Array]} array    [要迭代的数组]
+   * @param  {[Function]} iteratee [调用每个元素的迭代函数]
+   * @return {[*]}          [返回最小的值]
+   */
+  minBy: function(array,iteratee = this.identity) {
+    iteratee = this.iteratee2fn(iteratee)
+    return array.length === 0 || array === undefined ? undefined : array.reduce((acuu, curr) => iteratee(acuu) < iteratee(curr) ? acuu : curr)
+  },
+
+  /**
+   * 乘法
+   * @param  {[number]} multiplier   [相乘的第一个数]
+   * @param  {[number]} multiplicand [相乘的第二个数]
+   * @return {[number]}              [返回乘积]
+   */
+  multiply: function(multiplier,multiplicand) {
+    return multiplier * multiplicand
+  },
+
+  /**
+   * 四舍五入
+   * @param  {[number]} number    [要四舍五入的数字]
+   * @param  {number} precision [精度]
+   * @return {[number]}           [返回四舍五入的数字]
+   */
+  round: function(number,precision = 0) {
+    return Math.round(number * 10 ** pos) / 10 ** pos
+  },
+
+  /**
+   * 减法
+   * @param  {[number]} minuend    [被减数]
+   * @param  {[number]} subtrahend [减数]
+   * @return {[number]}            [差]
+   */
+  subtract: function(minuend,subtrahend) {
+    return minuend - subtrahend
+  },
+
+  sum: function(array) {
+    return array.reduce((acuu,curr) => acuu+curr)
+  },
+
+  sumBy: function(array, iteratee = this.identity) {
+    iteratee = this.iteratee2fn(iteratee)
+    return array.reduce((acuu,curr) => acuu+iteratee(curr),0)
+  },
+
+  //Nubmer 方法*********************************************************
+  
+
+
   //Object对象方法*******************************************************
 
-    values: function(object) {
+
+  values: function(object) {
     return Object.values(object)
   },
 

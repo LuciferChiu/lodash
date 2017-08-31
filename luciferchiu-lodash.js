@@ -1687,7 +1687,7 @@ var luciferchiu = {
    * @param  {[Function]} iteratee [调用每个元素的迭代函数]
    * @return {[*]}          [返回最小的值]
    */
-  minBy: function(array,iteratee = this.identity) {
+  minBy: function(array, iteratee = this.identity) {
     iteratee = this.iteratee2fn(iteratee)
     return array.length === 0 || array === undefined ? undefined : array.reduce((acuu, curr) => iteratee(acuu) < iteratee(curr) ? acuu : curr)
   },
@@ -1698,7 +1698,7 @@ var luciferchiu = {
    * @param  {[number]} multiplicand [相乘的第二个数]
    * @return {[number]}              [返回乘积]
    */
-  multiply: function(multiplier,multiplicand) {
+  multiply: function(multiplier, multiplicand) {
     return multiplier * multiplicand
   },
 
@@ -1708,7 +1708,7 @@ var luciferchiu = {
    * @param  {number} precision [精度]
    * @return {[number]}           [返回四舍五入的数字]
    */
-  round: function(number,precision = 0) {
+  round: function(number, precision = 0) {
     return Math.round(number * 10 ** pos) / 10 ** pos
   },
 
@@ -1718,22 +1718,69 @@ var luciferchiu = {
    * @param  {[number]} subtrahend [减数]
    * @return {[number]}            [差]
    */
-  subtract: function(minuend,subtrahend) {
+  subtract: function(minuend, subtrahend) {
     return minuend - subtrahend
   },
 
   sum: function(array) {
-    return array.reduce((acuu,curr) => acuu+curr)
+    return array.reduce((acuu, curr) => acuu + curr)
   },
 
   sumBy: function(array, iteratee = this.identity) {
     iteratee = this.iteratee2fn(iteratee)
-    return array.reduce((acuu,curr) => acuu+iteratee(curr),0)
+    return array.reduce((acuu, curr) => acuu + iteratee(curr), 0)
   },
 
   //Nubmer 方法*********************************************************
-  
 
+  /**
+   * 返回限制在lower和upper之间的值
+   * @param  {[number]} number [被限制的值]
+   * @param  {[number]} lower  [下限]
+   * @param  {[number]} upper  [上限]
+   * @return {[number]}        [返回被限制的值]
+   */
+  clamp: function(number, lower, upper) {
+    return Math.max(lower, Math.min(number, upper))
+  },
+
+  /**
+   * 检查 n 是否在 start 与 end 之间，但不包括 end. 如果 end 没有指定，那么 start 设置为0。如果 start 大于 end，那么参数会交换以便支持负范围
+   * @param  {[number]} number [要检查的值]
+   * @param  {number} start  [开始范围]
+   * @param  {[number]} end    [结束范围]
+   * @return {[boolean]}        [ 如果number在范围内 ，那么返回true，否则返回 false]
+   */
+  inRange: function(number, start = 0, end) {
+    if (end === undefined) {
+      end = start
+      start = 0
+    }
+    if (start > end) {
+      [start, end] = [end, start]
+    }
+    return number < start ? false : number >= end ? false : true
+  },
+
+  /**
+   * 产生一个包括 lower 与 upper 之间的数。 如果只提供一个参数返回一个0到提供数之间的数。 如果 floating 设为 true，或者 lower 或 upper 是浮点数，结果返回浮点数。 
+   * @param  {number}  lower    [下限]
+   * @param  {number}  upper    [上限]
+   * @param  {boolean} floating [指定是否返回浮点数]
+   * @return {[number]}           [返回随机数]
+   */
+  random: function(lower = 0, upper = 1, floating = false) {
+    if (arguments.length === 1) {
+      upper = lower
+      lower = 0
+    } else if (arguments.length === 2 && typeof arguments[1] !== 'number') {
+      floating = upper
+      upper = lower
+      lower = 0
+    }
+    var result = Math.random() * (upper - lower + 1) + lower
+    return floating ? result : Number.isInteger(lower) && Number.isInteger(upper) ? parseInt(result) : result
+  },
 
   //Object对象方法*******************************************************
 
@@ -1742,7 +1789,628 @@ var luciferchiu = {
     return Object.values(object)
   },
 
-  //辅助方法*******************************************************
+  //String方法 **********************************************************
+
+  /**
+   * 转换字符串string为 驼峰写法
+   * @param  {string} string [要转换的字符串]
+   * @return {[string]}        [返回驼峰写法的字符串]
+   */
+  camelCase: function(string = '') {
+    return string.match(/\w+/g).reduce((a, b, i) => i == 0 ? a + b.toLowerCase() : a + b.slice(0, 1).toUpperCase() + b.slice(1).toLowerCase(), "")
+  },
+
+  /**
+   * 转换字符串string首字母为大写，剩下为小写。
+   * @param  {String} string [要大写开头的字符串]
+   * @return {[string]}        [返回大写开头的字符串]
+   */
+  capitalize: function(string = '') {
+    return string.replace(/^(\w)(.*)/g, (m, a, b) => a.toUpperCase() + b.toLowerCase())
+  },
+
+  /**
+   * 转换字符串string中拉丁语-1补充字母 和 拉丁语扩展字母-A 为基本的拉丁字母，并且去除组合变音标记。
+   * 这一题偷懒了，拉丁文实在太多，直接抄的源码里的哈哈哈
+   * @param  {String} string [要处理的字符串]
+   * @return {[string]}        [返回处理后的字符串]
+   */
+  deburr: function(string = '') {
+    var reLatin = /[\xc0-\xd6\xd8-\xf6\xf8-\xff\u0100-\u017f]/g
+    var deburredLetters = {
+      // Latin-1 Supplement block.
+      '\xc0': 'A',
+      '\xc1': 'A',
+      '\xc2': 'A',
+      '\xc3': 'A',
+      '\xc4': 'A',
+      '\xc5': 'A',
+      '\xe0': 'a',
+      '\xe1': 'a',
+      '\xe2': 'a',
+      '\xe3': 'a',
+      '\xe4': 'a',
+      '\xe5': 'a',
+      '\xc7': 'C',
+      '\xe7': 'c',
+      '\xd0': 'D',
+      '\xf0': 'd',
+      '\xc8': 'E',
+      '\xc9': 'E',
+      '\xca': 'E',
+      '\xcb': 'E',
+      '\xe8': 'e',
+      '\xe9': 'e',
+      '\xea': 'e',
+      '\xeb': 'e',
+      '\xcc': 'I',
+      '\xcd': 'I',
+      '\xce': 'I',
+      '\xcf': 'I',
+      '\xec': 'i',
+      '\xed': 'i',
+      '\xee': 'i',
+      '\xef': 'i',
+      '\xd1': 'N',
+      '\xf1': 'n',
+      '\xd2': 'O',
+      '\xd3': 'O',
+      '\xd4': 'O',
+      '\xd5': 'O',
+      '\xd6': 'O',
+      '\xd8': 'O',
+      '\xf2': 'o',
+      '\xf3': 'o',
+      '\xf4': 'o',
+      '\xf5': 'o',
+      '\xf6': 'o',
+      '\xf8': 'o',
+      '\xd9': 'U',
+      '\xda': 'U',
+      '\xdb': 'U',
+      '\xdc': 'U',
+      '\xf9': 'u',
+      '\xfa': 'u',
+      '\xfb': 'u',
+      '\xfc': 'u',
+      '\xdd': 'Y',
+      '\xfd': 'y',
+      '\xff': 'y',
+      '\xc6': 'Ae',
+      '\xe6': 'ae',
+      '\xde': 'Th',
+      '\xfe': 'th',
+      '\xdf': 'ss',
+      // Latin Extended-A block.
+      '\u0100': 'A',
+      '\u0102': 'A',
+      '\u0104': 'A',
+      '\u0101': 'a',
+      '\u0103': 'a',
+      '\u0105': 'a',
+      '\u0106': 'C',
+      '\u0108': 'C',
+      '\u010a': 'C',
+      '\u010c': 'C',
+      '\u0107': 'c',
+      '\u0109': 'c',
+      '\u010b': 'c',
+      '\u010d': 'c',
+      '\u010e': 'D',
+      '\u0110': 'D',
+      '\u010f': 'd',
+      '\u0111': 'd',
+      '\u0112': 'E',
+      '\u0114': 'E',
+      '\u0116': 'E',
+      '\u0118': 'E',
+      '\u011a': 'E',
+      '\u0113': 'e',
+      '\u0115': 'e',
+      '\u0117': 'e',
+      '\u0119': 'e',
+      '\u011b': 'e',
+      '\u011c': 'G',
+      '\u011e': 'G',
+      '\u0120': 'G',
+      '\u0122': 'G',
+      '\u011d': 'g',
+      '\u011f': 'g',
+      '\u0121': 'g',
+      '\u0123': 'g',
+      '\u0124': 'H',
+      '\u0126': 'H',
+      '\u0125': 'h',
+      '\u0127': 'h',
+      '\u0128': 'I',
+      '\u012a': 'I',
+      '\u012c': 'I',
+      '\u012e': 'I',
+      '\u0130': 'I',
+      '\u0129': 'i',
+      '\u012b': 'i',
+      '\u012d': 'i',
+      '\u012f': 'i',
+      '\u0131': 'i',
+      '\u0134': 'J',
+      '\u0135': 'j',
+      '\u0136': 'K',
+      '\u0137': 'k',
+      '\u0138': 'k',
+      '\u0139': 'L',
+      '\u013b': 'L',
+      '\u013d': 'L',
+      '\u013f': 'L',
+      '\u0141': 'L',
+      '\u013a': 'l',
+      '\u013c': 'l',
+      '\u013e': 'l',
+      '\u0140': 'l',
+      '\u0142': 'l',
+      '\u0143': 'N',
+      '\u0145': 'N',
+      '\u0147': 'N',
+      '\u014a': 'N',
+      '\u0144': 'n',
+      '\u0146': 'n',
+      '\u0148': 'n',
+      '\u014b': 'n',
+      '\u014c': 'O',
+      '\u014e': 'O',
+      '\u0150': 'O',
+      '\u014d': 'o',
+      '\u014f': 'o',
+      '\u0151': 'o',
+      '\u0154': 'R',
+      '\u0156': 'R',
+      '\u0158': 'R',
+      '\u0155': 'r',
+      '\u0157': 'r',
+      '\u0159': 'r',
+      '\u015a': 'S',
+      '\u015c': 'S',
+      '\u015e': 'S',
+      '\u0160': 'S',
+      '\u015b': 's',
+      '\u015d': 's',
+      '\u015f': 's',
+      '\u0161': 's',
+      '\u0162': 'T',
+      '\u0164': 'T',
+      '\u0166': 'T',
+      '\u0163': 't',
+      '\u0165': 't',
+      '\u0167': 't',
+      '\u0168': 'U',
+      '\u016a': 'U',
+      '\u016c': 'U',
+      '\u016e': 'U',
+      '\u0170': 'U',
+      '\u0172': 'U',
+      '\u0169': 'u',
+      '\u016b': 'u',
+      '\u016d': 'u',
+      '\u016f': 'u',
+      '\u0171': 'u',
+      '\u0173': 'u',
+      '\u0174': 'W',
+      '\u0175': 'w',
+      '\u0176': 'Y',
+      '\u0177': 'y',
+      '\u0178': 'Y',
+      '\u0179': 'Z',
+      '\u017b': 'Z',
+      '\u017d': 'Z',
+      '\u017a': 'z',
+      '\u017c': 'z',
+      '\u017e': 'z',
+      '\u0132': 'IJ',
+      '\u0133': 'ij',
+      '\u0152': 'Oe',
+      '\u0153': 'oe',
+      '\u0149': "'n",
+      '\u017f': 's'
+    }
+    var deburrLetter = function(key) {
+      return deburredLetters[key]
+    }
+    var reComboMark = RegExp('[' + '\\u0300-\\u036f' + '\\ufe20-\\ufe2f' + '\\u20d0-\\u20ff' + ']', 'g')
+    return string && string.replace(reLatin, deburrLetter).replace(reComboMark, '')
+  },
+
+  /**
+   * 检查字符串string是否以给定的target字符串结尾
+   * @param  {String} string   [要检索的字符串]
+   * @param  {[string]} target   [要检索字符]
+   * @param  {[number]} position [检索的位置]
+   * @return {[boolean]}          [如果字符串string以target字符串结尾，那么返回 true，否则返回 false]
+   */
+  endsWith: function(string = '', target, position = string.length) {
+    var str = string.slice(0, position)
+    return new RegExp(target + '$', 'g').test(str)
+  },
+
+  /**
+   * 转义string中的 "&", "<", ">", '"', "'", 和 "`" 字符为HTML实体字符。
+   * @param  {string} string [ 要转义的字符串]
+   * @return {[string]}        [返回转义后的字符串]
+   */
+  escape: function(string = '') {
+    var reg = /[&<>"']/g
+    var symbol = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&apos;",
+    }
+    return string.replace(reg, it => symbol[it])
+  },
+
+  /**
+   * 转义 RegExp 字符串中特殊的字符 "^", "$", "", ".", "*", "+", "?", "(", ")", "[", "]", "{", "}", 和 "|" in .
+   * @param  {string} string [要转义的字符串]
+   * @return {[string]}        [返回转义后的字符串]
+   */
+  escapeRegExp: function(string = '') {
+    var reg = /[\^\$\.\*\+\?\(\)\[\]\{\}\|]/g
+    return string.replace(reg, it => '\\' + it)
+  },
+
+  /**
+   * 要转换的字符串
+   * @param  {string} str [要转换的字符串]
+   * @return {string}     [返回转换后的字符串]
+   */
+  kebabCase: function(str = '') {
+    return this.lowerCase(str).replace(/ /g, "-")
+  },
+
+  /**
+   * 转换字符串string以空格分开单词，并转换为小写
+   * @param  {String} str [要转换的字符串]
+   * @return {[string]}     [返回转换后的字符串]
+   */
+  lowerCase: function(str = '') {
+    var words_arr = this.getWords(str);
+    words_str = words_arr.join(" ");
+    re = /[a-z][A-Z]/g;
+    return words_str.replace(re, m => (m.slice(0, 1) + " " + m.slice(1))).toLowerCase();
+  },
+
+  /**
+   * 去除空格，下划线等
+   * @param  {[string]} str [原字符串]
+   * @return {[array]}     [字符串的数组]
+   */
+  getWords: function(str) {
+    input_str = str;
+    re = /[A-Za-z0-9]+/g;
+    return words = input_str.match(re, input_str);
+  },
+
+  /**
+   * 转换字符串string的首字母为小写
+   * @param  {string} str [要转换的字符串]
+   * @return {string}     [返回转换后的字符串]
+   */
+  lowerFirst: function(str = '') {
+    return str[0].toLowerCase() + str.slice(1)
+  },
+
+  /**
+   * 如果string字符串长度小于 length 则从左侧和右侧填充字符。 如果没法平均分配，则截断超出的长度。
+   * @param  {String} str    [要填充的字符串]
+   * @param  {Number} length [填充的长度]
+   * @param  {String} chars  [填充字符]
+   * @return {[string]}        [返回填充后的字符串]
+   */
+  pad: function(str = '', length = 0, chars = ' ') {
+    if (length === str.length) return str
+    let left = Math.floor((length - str.length - chars.length) / 2)
+    let right = length - str.length - chars.length - left
+    let result = chars.repeat(left) + str + chars.repeat(right)
+    return result.slice(0, length)
+  },
+
+  /**
+   * 如果string字符串长度小于 length 则在右侧填充字符。 如果超出length长度则截断超出的部分。
+   * @param  {String} str    [要填充的字符串]
+   * @param  {Number} length [填充的长度]
+   * @param  {String} chars  [填充字符]
+   * @return {[string]}        [返回填充后的字符串]
+   */
+  padEnd: function(str = '', length = 0, chars = ' ') {
+    if (length === str.length) return str
+    let count = length - str.length - chars.length + 1
+    return (str + chars.repeat(count)).slice(0, length)
+  },
+
+  /**
+   * 如果string字符串长度小于 length 则在左侧填充字符。 如果超出length长度则截断超出的部分。
+   * @param  {String} str    [要填充的字符串]
+   * @param  {Number} length [填充的长度]
+   * @param  {String} chars  [ 填充字符]
+   * @return {[string]}        [返回填充后的字符串]
+   */
+  padStart: function(str = '', length = 0, chars = ' ') {
+    if (length === str.length) return str
+    let count = length - str.length - chars.length + 1
+    return chars.repeat(count).slice(0, length - str.length) + str
+  },
+
+  /**
+   * 转换string字符串为指定基数的整数。
+   * @param  {[type]} str   [要转换的字符串]
+   * @param  {Number} radix [转换基数]
+   * @return {[type]}       [返回转换后的整数]
+   */
+  parseInt: function(string, radix = 10) {
+    if (typeof string !== "string" && typeof string !== "number") return NaN;
+    //如果radix不是数字，或者string是小数，则返回NaN
+    if ((typeof radix !== "number" || /^[1-9]\d*\.\d*|0\.\d*[1-9]\d*$/.test(radix) || radix > 36 || radix < 2)) return NaN;
+    string = String(string)
+      //如果 string 以 0 开头，那么 ES5 允许 parseInt() 的一个实现把其后的字符解析为八进制或十六进制的数字。
+    var rexp = (radix == 10) ? /(-?)([0]?)([0-9]+)/ : /(-?)([0]?[Xx]?)([0-9a-fA-F]+)/,
+      a = string.match(rexp),
+      sign = a[1],
+      rawRadix = a[2],
+      rawNum = a[3],
+      result = 0,
+      strArr = rawNum.split(''),
+      len = strArr.length,
+      numArr = [];
+    if (a && !radix) {
+      if (rawRadix.toUpperCase() === "0X") {
+        radix = 16;
+      } else if (rawRadix === "0") {
+        radix = 8;
+      } else {
+        radix = 10;
+      }
+    }
+    for (var i = 0; i < len; i++) {
+      var num;
+      var charCode = strArr[i].toUpperCase().charCodeAt(0);
+      if (radix <= 36 && radix >= 11) {
+        if (charCode >= 65 && charCode <= 90) {
+          num = charCode - 55;
+        } else {
+          num = charCode - 48;
+        }
+      } else {
+        num = charCode - 48;
+      }
+      if (num < radix) {
+        numArr.push(num);
+      } else {
+        return NaN
+      };
+    }
+    if (numArr.length > 0) {
+      numArr.forEach(function(item, j) {
+        result += item * Math.pow(radix, numArr.length - j - 1);
+      })
+    }
+    if (sign === "-") {
+      result = -result;
+    }
+    return result
+  },
+
+  /**
+   * 重复 N 次给定字符串n
+   * 没有什么比原生更强啊，哈哈哈哈哈，偷个懒偷个懒
+   * @param  {String} str [要重复的字符串]
+   * @param  {Number} n   [重复的次数]
+   * @return {[type]}     [返回重复的字符串]
+   */
+  repeat: function(str = '', n = 1) {
+    return str.repeat(n)
+  },
+
+  /**
+   * 替换string字符串中匹配的pattern为给定的replacement 。
+   * @param  {String} str         [待替换的字符串]
+   * @param  {[RegExp|string]} pattern     [要匹配的内容]
+   * @param  {[Function|string]} replacement [替换的内容]
+   * @return {[type]}             [返回替换后的字符串]
+   */
+  replace: function(str = '', pattern, replacement) {
+    var result = [],
+      start = 0
+    for (var i = 0; i < str.length; i++) {
+      if (str[i] === pattern[0]) {
+        if (str.slice(i, i + pattern.length) === pattern) {
+          result.push(str.slice(start, i))
+          result.push(replacement)
+          i = i + pattern.length - 1
+          start = i + 1
+        }
+      }
+    }
+    result.push(str.slice(start, str.length))
+    result = result.join("")
+    return result
+  },
+
+  /**
+   * 转换字符串string为 snake_case,就是加个下划线
+   * @param  {string} str [要转换的字符串]
+   * @return {[string]}     [返回转换后的字符串]
+   */
+  snakeCase: function(str = '') {
+    return this.lowerCase(str).replace(/ /g, '_')
+  },
+
+  /**
+   * 根据separator 拆分字符串string
+   * @param  {String} str       [根据separator 拆分字符串string。 ]
+   * @param  {[type]} separator [要拆分的字符串]
+   * @param  {[type]} limit     [拆分的分隔符]
+   * @return {[type]}           [限制结果的数量]
+   */
+  split: function(str = '', separator, limit) {
+    var result = str.replace(new RegExp(separator, 'g'), '')
+    var arr = [...result]
+    arr.length = limit
+    return arr
+  },
+
+  /**
+   * 转换 string 字符串为 start case,也就是首字母大写
+   * @param  {string} str [要转换的字符串]
+   * @return {[string]}     [返回转换后的字符串]
+   */
+  startCase: function(str = '') {
+    return this.lowerCase(str).replace(/\b\w(?=\w+)/g, it => it.toUpperCase())
+  },
+
+  /**
+   * 检查字符串string是否以 target 开头
+   * @param  {String} str      [要检索的字符串]
+   * @param  {[string]} target   [要检查的字符串]
+   * @param  {Number} position [检索的位置]
+   * @return {[boolean]}          [如果string以 target，那么返回true，否则返回 false ]
+   */
+  startsWith: function(str = '', target, position = 0) {
+    return str[position] === target
+  },
+
+  /**
+   * 转换整个string字符串的字符为小写
+   * @param  {String} str [ 要转换的字符串]
+   * @return {[string]}     [返回小写的字符串]
+   */
+  toLower: function(str = '') {
+    return str.toLowerCase()
+  },
+
+  /**
+   * 转换整个string字符串的字符为大写
+   * @param  {String} str [要转换的字符串]
+   * @return {[type]}     [返回大写的字符串]
+   */
+  toUpper: function(str = '') {
+    return str.toUpperCase()
+  },
+
+  /**
+   * 从string字符串中移除前面和后面的 空格 或 指定的字符
+   * @param  {String} str   [要处理的字符串]
+   * @param  {[type]} chars [要移除的字符]
+   * @return {[type]}       [返回处理后的字符串]
+   */
+  trim: function(str = '', chars) {
+    if (chars === undefined) {
+      return str.trim()
+    } else {
+      return [...chars].reduce((acuu, curr) => acuu.replace(new RegExp(curr, 'g'), ''), str)
+    }
+  },
+
+  /**
+   * 从string字符串中移除后面的 空格 或 指定的字符。
+   * @param  {string} str   [要处理的字符串]
+   * @param  {[string]} chars [要移除的字符]
+   * @return {[string]}       [返回处理后的字符串]
+   */
+  trimEnd: function(str = '', chars) {
+    let realStr = str.trim()
+    if (chars === undefined) {
+      return str.replace(new RegExp(realStr + '\\s+', 'g'), realStr)
+    } else {
+      return str.replace(new RegExp(`[${chars}]*$`, 'g'), "")
+    }
+  },
+
+  /**
+   * 从string字符串中移除前面的 空格 或 指定的字符
+   * @param  {String} str   [要处理的字符串]
+   * @param  {[string]} chars [要移除的字符]
+   * @return {[string]}       [返回处理后的字符串]
+   */
+  trimStart: function(str = '', chars) {
+    let realStr = str.trim()
+    if (chars === undefined) {
+      return str.replace(new RegExp('\\s+' + realStr, 'g'), realStr)
+    } else {
+      return str.replace(new RegExp(`^[${chars}]*`, 'g'), "")
+    }
+  },
+
+  /**
+   * 截断string字符串，如果字符串超出了限定的最大值。 被截断的字符串后面会以 omission 代替，omission 默认是 "..."
+   * @param  {String} str               [要截断的字符串]
+   * @param  {Number} options.length    [选项对象]
+   * @param  {String} options.omission  [允许的最大长度]
+   * @param  {Object} options.separator               } [超出后的代替字符]
+   * @return {[type]}                   [截断点]
+   */
+  truncate: function(str = '', {
+    length = 30,
+    omission = '...',
+    separator
+  } = {}) {
+    if(separator == undefined && str.length > length){
+      return str.substr(0,length-omission.length)+omission
+    }else if(str.length > length){
+      var new_str = str.substr(0, length - omission.length);
+      return new_str.substr(0, new_str.lastIndexOf(...new_str.match(new RegExp(separator, "g")).slice(-1))) + omission;
+    }else {
+      return str
+    }
+  },
+
+  /**
+   * _.escape的反向版。 这个方法转换string字符串中的 HTML 实体 &amp;, &lt;, &gt;, &quot;, &#39;, 和 &#96; 为对应的字符。 
+   * @param  {String} str [要转换的字符串]
+   * @return {[string]}     [返回转换后的字符串]
+   */
+  unescape: function(str='') {
+    var arr = {
+      "&amp;": "&",
+      "&lt;": "<",
+      "&gt;": ">",
+      "&quot;": '"',
+      "&apos;": "'"
+    }
+    return str.replace(/&amp;|&lt;|&gt;|&quot;|&apos;/g,it => arr[it])
+  },
+
+  /**
+   * 转换字符串string为 空格 分隔的大写单词。
+   * @param  {String} str [ 要转换的字符串]
+   * @return {[type]}     [返回大写单词]
+   */
+  upperCase: function(str=''){
+    return this.lowerCase(str).toUpperCase()
+  },
+
+  /**
+   * 转换字符串string的首字母为大写。
+   * @param  {String} str [要转换的字符串]
+   * @return {[string]}     [返回转换后的字符串]
+   */
+  upperFirst: function(str=''){
+    return str[0].toUpperCase() + str.slice(1)
+  },
+
+  /**
+   * 拆分字符串string中的词为数组 。
+   * @param  {String} str     [要拆分的字符串。]
+   * @param  {[RegExp|string]} pattern [匹配模式。]
+   * @return {[Array]}         [返回拆分string后的数组。]
+   */
+  words: function(str='',pattern){
+    if(pattern === undefined) {
+      return str.match(/\w+/g)
+    }else {
+      return str.match(pattern)
+    }
+  },
+
+  //辅助方法**************************************************************
   /**
    * 深度相等                                      
    * @param  {[type]}  o1 [description]

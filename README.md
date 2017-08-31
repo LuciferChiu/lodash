@@ -27,6 +27,6 @@
      [x] Collection
      [x] Function
      [x] Math
-     [] Number
+     [x] Number
      [] Object
-     [] String
+     [x] String

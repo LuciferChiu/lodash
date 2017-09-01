@@ -22,11 +22,11 @@
 
 ------
 
-### 进展 Progress
+### Todo
      [x] Array
      [x] Collection
      [x] Function
      [x] Math
      [x] Number
-     [] Object
+     [x] Object
      [x] String

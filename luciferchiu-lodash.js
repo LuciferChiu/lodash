@@ -1784,9 +1784,603 @@ var luciferchiu = {
 
   //Object对象方法*******************************************************
 
+  /**
+   * 分配来源对象的可枚举属性到目标对象上。
+   * @param  {[Object]}    object  [目标对象]
+   * @param  {...[Object]} sources [来源对象]
+   * @return {[Object]}            [返回 object]
+   */
+  assign: function(object, ...sources) {
+    var self = this
+    sources.forEach(it => {
+      this.forOwn(it, function(value, key) {
+        object[key] = value
+      })
+    })
+    return object
+  },
 
+  /**
+   * 这个方法类似 _.assign， 除了它会遍历并继承来源对象的属性。 
+   * @param  {[Object]}    object  [目标对象]
+   * @param  {...[Object]} sources [来源对象]
+   * @return {[Object]}            [返回 object]
+   */
+  assignIn: function(object, ...sources) {
+    sources.forEach(function(it) {
+      for (let key in it) {
+        object[key] = it[key]
+      }
+    })
+    return object
+  },
+
+  /**
+   * 创建一个数组，值来自 object 的paths路径相应的值。
+   * @param  {[Object]} object [要迭代的对象]
+   * @param  {[string|string[]]} paths  [要获取的对象的元素路径，单独指定或者指定在数组中。]
+   * @return {[Array]}        [返回选中值的数组]
+   */
+  at: function(object, paths) {
+    var self = this
+    return paths.map(x => self.get(object, x))
+  },
+
+  /**
+   * 创建一个继承 prototype 的对象。 如果提供了 prototype，它的可枚举属性会被分配到创建的对象上。
+   * @param  {[type]} prototype  [要继承的对象。]
+   * @param  {[type]} properties [待分配的属性。]
+   * @return {[type]}            [返回新对象。]
+   */
+  create: function(prototype, properties) {
+    return Object.create(prototype, properties)
+  },
+
+  /**
+   * 分配来源对象的可枚举属性到目标对象所有解析为 undefined 的属性上。 来源对象从左到右应用。 一旦设置了相同属性的值，后续的将被忽略掉。 
+   * @param  {[Object]}    object  [目标对象]
+   * @param  {...[Object]} sources [来源对象]
+   * @return {[Object]}            [返回 object]
+   */
+  defaults: function(object, ...sources) {
+    return sources.reduce((acuu, curr) => {
+      for (let key in curr) {
+        if (acuu[key] == undefined) {
+          acuu[key] = curr[key]
+        }
+      }
+      return acuu
+    }, object)
+  },
+
+  /**
+   * 这个方法类似 _.defaults，除了它会递归分配默认属性。
+   * @param  {[Object]}    object  [目标对象]
+   * @param  {...[Object]} sources [来源对象]
+   * @return {[Object]}            [返回 object]
+   */
+  defaultsDeep: function(object, ...sources) {
+    return sources.reduce((acuu, curr) => {
+      for (var key in curr) {
+        if (typeof curr[key] == "object") {
+          this.defaultsDeep(acuu[key], curr[key])
+        }
+        if (acuu[key] == undefined) {
+          acuu[key] = curr[key];
+        }
+      }
+      return acuu;
+    }, object)
+
+  },
+
+  /**
+   * 这个方法类似 _.find 。 除了它返回最先被 predicate 判断为真值的元素 key，而不是元素本身。
+   * @param  {[Object]} object    [需要检索的对象。]
+   * @param  {[Function]} predicate [每次迭代时调用的函数。]
+   * @return {[*]}           [返回匹配的 key，否则返回 undefined。]
+   */
+  findKey: function(object, predicate = _.identity) {
+    var predicate = this.iteratee2fn(predicate)
+    for (let key of Object.keys(object)) {
+      if (predicate(object[key]) === true) {
+        return key
+      }
+    }
+    return undefined
+  },
+
+  /**
+   * 这个方法类似_.findKey。 不过它是反方向开始遍历的。
+   * @param  {[Object]} object    [需要检索的对象。]
+   * @param  {[Function]} predicate [每次迭代时调用的函数。]
+   * @return {[*]}           [返回匹配的 key，否则返回 undefined]
+   */
+  findLastKey: function(object, predicate = _.identity) {
+    var predicate = this.iteratee2fn(predicate)
+    var arr = Object.keys(object)
+    for (let i = arr.length - 1; i >= 0; i--) {
+      if (predicate(object[arr[i]]) === true) {
+        return arr[i]
+      }
+    }
+    return undefined
+  },
+
+  /**
+   * 使用 iteratee 遍历对象的自身和继承的可枚举属性.如果返回 false，iteratee 会提前退出遍历。
+   * @param  {[Object]} object   [要遍历的对象]
+   * @param  {[Function]} iteratee [每次迭代时调用的函数]
+   * @return {[Object]}          [返回 object]
+   */
+  forIn: function(object, iteratee = this.identity) {
+    for (let key in object) {
+      if (iteratee(object[key], key, object) === false) {
+        break
+      }
+    }
+    return object
+  },
+
+  /**
+   * 这个方法类似 _.forIn。 除了它是反方向开始遍历object的。
+   * @param  {[Object]} object   [要遍历的对象]
+   * @param  {[Function]} iteratee [每次迭代时调用的函数]
+   * @return {[Object]}          [返回 object]
+   */
+  forInRight: function(object, iteratee = this.identity) {
+    var arr = []
+    for (let key in object) {
+      arr.push(key)
+    }
+    for (let i = arr.length - 1; i >= 0; i--) {
+      if (iteratee(object[arr[i]], arr[i], object) === false) {
+        break
+      }
+    }
+    return object
+  },
+
+  /**
+   * 使用 iteratee 遍历自身的可枚举属性。 iteratee 会传入3个参数：(value, key, object)。 如果返回 false，iteratee 会提前退出遍历。
+   * @param  {[Object]} object   [要遍历的对象]
+   * @param  {[Function]} iteratee [每次迭代时调用的函数]
+   * @return {[Object]}          [返回 object]
+   */
+  forOwn: function(object, iteratee = this.identity) {
+    var arr = Object.keys(object)
+    for (let key of arr) {
+      if (iteratee(object[key], key, object) === false) {
+        break
+      }
+    }
+    return object
+  },
+
+  /**
+   * 这个方法类似 _.forOwn。 除了它是反方向开始遍历object的。
+   * @param  {[Object]} object   [ 要遍历的对象]
+   * @param  {[Function]} iteratee [每次迭代时调用的函数]
+   * @return {[Object]}          [返回 object]
+   */
+  forOwnRight: function(object, iteratee = this.identity) {
+    var arr = Object.keys(object)
+    for (let i = arr.length - 1; i >= 0; i--) {
+      if (iteratee(object[arr[i]], arr[i], object) === false) {
+        break
+      }
+    }
+    return object
+  },
+
+  /**
+   * 创建一个函数属性名称的数组，函数属性名称来自object对象自身可枚举属性
+   * @param  {[Object]} object [要检查的对象]
+   * @return {[Array]}        [返回函数名]
+   */
+  functions: function(object) {
+    return Object.keys(object)
+  },
+
+  /**
+   * 创建一个函数属性名称的数组，函数属性名称来自object对象自身和继承的可枚举属性。
+   * @param  {[Object]} object [要检查的对象]
+   * @return {[Array]}        [返回函数名]
+   */
+  functionsIn: function(object) {
+    let result = []
+    for (let key in object) {
+      result.push(key)
+    }
+    return result
+  },
+
+  /**
+   * 根据 object对象的path路径获取值
+   * @param  {[Object]} object       [要检索的对象]
+   * @param  {[Array|string]} path         [要获取属性的路径]
+   * @param  {[*]} defaultValue [如果解析值是 undefined ，这值会被返回]
+   * @return {[*]}              [返回解析的值]
+   */
+  get: function(object, path, defaultValue) {
+    path = this.toPath(path)
+    var result = path.reduce((acuu, curr) => acuu === undefined ? undefined : acuu[curr], object)
+    return result === undefined ? defaultValue : result
+  },
+
+  /**
+   * 检查 path 是否是object对象的直接属性。
+   * @param  {[Object]}  object [要检索的对象]
+   * @param  {[Array|string]}  path   [要检查的路径path]
+   * @return {Boolean}        [如果path存在，那么返回 true ，否则返回 false]
+   */
+  has: function(object, path) {
+    if (typeof path === 'string') {
+      path = this.toPath(path)
+    }
+    var temp = object
+    for (var i = 0; i < path.length; i++) {
+      if (temp.hasOwnProperty(path[i])) temp = temp[path[i]]
+      else return false
+    }
+    return true
+  },
+
+  /**
+   * 检查 path 是否是object对象的直接或继承属性
+   * @param  {[Object]}  object [要检索的对象]
+   * @param  {[Array|string]}  path   [要检查的路径path]
+   * @return {Boolean}        [如果path存在，那么返回 true ，否则返回 false]
+   */
+  hasIn: function(object, path) {
+    if (typeof path === 'string') {
+      path = this.toPath(path)
+    }
+    return path.reduce((acuu, curr) => acuu === undefined ? undefined : acuu[curr], object) !== undefined
+  },
+
+  /**
+   * 创建一个object键值倒置后的对象。 如果 object 有重复的值，后面的值会覆盖前面的值
+   * @param  {[Object]} object [要键值倒置对象]
+   * @return {[Object]}        [返回新的键值倒置后的对象]
+   */
+  invert: function(object) {
+    var result = {}
+    for (keys in obj) {
+      if (!result[obj[keys]]) {
+        result[obj[keys]] = keys
+      } else if (Array.isArray(result[obj[keys]])) {
+        result[obj[keys]].push(keys)
+      } else {
+        result[obj[keys]] = [result[obj[keys]]]
+        result[obj[keys]].push(keys)
+
+      }
+
+    }
+    return result
+  },
+
+  /**
+   * 这个方法类似 _.invert，除了倒置对象 是 collection（集合）中的每个元素经过 iteratee（迭代函数） 处理后返回的结果
+   * @param  {[type]} obj      [要键值倒置对象]
+   * @param  {[type]} iteratee [每次迭代时调用的函数]
+   * @return {[type]}          [返回新的键值倒置后的对象]
+   */
+  invertBy: function(obj, iteratee = this.identity) {
+    var result = {},theKey,iteratee = this.iteratee2fn(iteratee)
+    for (keys in obj) {
+      theKey = iteratee(obj[keys])
+      if (!(theKey in result)) {
+        result[theKey] = []
+      }
+      result[theKey].push(keys)
+    }
+    return result
+  },
+
+
+  /**
+   * 调用object对象path上的方法
+   * @param  {[Object]}    object [要检索的对象]
+   * @param  {[Array|string]}    path   [用来调用的方法路径]
+   * @param  {...[*]} args   [调用的方法的参数]
+   * @return {[*]}           [返回调用方法的结果]
+   */
+  invoke: function(object,path,...args){
+    var path = this.toPath(path)
+    return path.reduce((acuu, curr) => {
+      if(acuu === undefined){
+        return undefined
+      }else if(typeof acuu[curr] ==='function'){
+        return acuu[curr](...args)
+      }else{
+        return acuu[curr]
+      }
+    }, object)
+  },
+
+  /**
+   * 创建一个 object 的自身可枚举属性名为数组
+   * @param  {[Object]} object [要检索的对象]
+   * @return {[Array]}        [返回包含属性名的数组]
+   */
+  keys: function(object){
+    return Object.keys(object)
+  },
+
+  /**
+   * 创建一个 object 自身 和 继承的可枚举属性名为数组
+   * @param  {[Object]} object [ 要检索的对象]
+   * @return {[Array]}        [返回包含属性名的数组]
+   */
+  keysIn: function(object) {
+    var result = []
+    for(let key in object){
+      result.push(key)
+    }
+    return result
+  },
+
+  /**
+   * 反向版 _.mapValues。 这个方法创建一个对象，对象的值与object相同，并且 key 是通过 iteratee 运行 object 中每个自身可枚举属性名字符串 产生的。
+   * @param  {[Object]} object   [要遍历的对象]
+   * @param  {[Function]} iteratee [iteratee调用三个参数： (value, key, object)]
+   * @return {[Object]}          [返回映射后的新对象]
+   */
+  mapKeys(object,iteratee=this.identity) {
+    var result = {}
+    iteratee = this.iteratee2fn(iteratee)
+    for(let key in object){
+      result[iteratee(object[key],key,object)] = object[key]
+    }
+    return result
+  },
+
+  /**
+   * 创建一个对象，这个对象的key与object对象相同，值是通过 iteratee 运行 object 中每个自身可枚举属性名字符串产生的。
+   * @param  {[Object]} object   [要遍历的对象]
+   * @param  {[Function]} iteratee [iteratee调用三个参数： (value, key, object)]
+   * @return {[Object]}          [返回映射后的新对象]
+   */
+  mapValues: function(object,iteratee = this.identity) {
+    var result = {}
+    iteratee = this.iteratee2fn(iteratee)
+    for(let key in object){
+      result[key] = iteratee(object[key])
+    }
+    return result
+  },
+
+  /**
+   * 该方法类似_.assign， 除了它递归合并 sources 来源对象自身和继承的可枚举属性到 object 目标对象。
+   * @param  {[Object]}    object  [目标对象]
+   * @param  {...[Object]} sources [来源对象]
+   * @return {[Object]}            [返回 object]
+   */
+  merge: function(object,...sources){
+    var self = this
+    return sources.reduce((acuu,curr)=>{
+      return Object.keys(curr).reduce((x,y) =>{
+        if(typeof curr[y] !== 'object') x[y] = curr[y]
+          self.merge(x[y],curr[y])
+        return x
+      },acuu)
+    },object)
+  },
+
+  /**
+   * 该方法类似_.merge，除了它接受一个 customizer，调用以产生目标对象和来源对象属性的合并值。
+   * @param  {[Object]}    object [目标对象]
+   * @param  {...[Object & Function]} args   [来源对象 & customizer(这个函数定制合并值) ]
+   * @return {[Object]}           [返回 object]
+   */
+  mergeWith: function(object,...args) {
+    var customizer = args.pop()
+    for(let i = 0;i < args.length;i++){
+      for(let key in args[i]){
+        if(!object[key]){
+          object[key] = args[i][key];
+        } 
+        else {
+          object[key] = customizer(object[key],args[i][key],key,object,args[i])
+        }
+      }
+    }
+    return object
+  },
+
+  /**
+   * 反向版 _.pick; 这个方法一个对象，这个对象由忽略属性之外的object自身和继承的可枚举属性组成。
+   * @param  {[Object]} object [来源对象]
+   * @param  {...[string|string[]]} props  [要被忽略的属性]
+   * @return {[Object]}        [返回新对象]
+   */
+  omit: function(object,props) {
+    var result = {}
+    for(let key in object) {
+      if(!props.includes(key)){
+        result[key] = object[key]
+      }
+    }
+    return result
+  },
+
+  /**
+   * 反向版 _.pickBy；这个方法一个对象，这个对象忽略 predicate（断言函数）判断不是真值的属性后，object自身和继承的可枚举属性组成
+   * @param  {[Object]} object    [来源对象]
+   * @param  {[Function]} predicate [调用每一个属性的函数]
+   * @return {[Object]}           [返回新对象]
+   */
+  omitBy: function(object,predicate = this.identity) {
+    var result = {}
+    predicate = this.iteratee2fn(predicate)
+    for(let key in object) {
+      if(!predicate(object[key],key)){
+        result[key] = object[key]
+      }
+    }
+    return result
+  },
+
+  /**
+   * [创建一个从 object 中选中的属性的对象]
+   * @param  {[Object]} object [来源对象 ]
+   * @param  {...(string|string[])} props  [要被忽略的属性]
+   * @return {[Object]}        [返回新对象]
+   */
+  pick: function(object,props) {
+    var result = {}
+    for(let key in object) {
+      if(props.includes(key)){
+        result[key] = object[key]
+      }
+    }
+    return result
+  },
+
+  /**
+   * 创建一个对象，这个对象组成为从 object 中经 predicate 判断为真值的属性。
+   * @param  {[Object]} object    [来源对象]
+   * @param  {[Function]} predicate [调用每一个属性的函数]
+   * @return {[Object]}           [返回新对象]
+   */
+  pickBy: function(object,predicate = this.identity){
+    var result = {}
+    predicate = this.iteratee2fn(predicate)
+    for(let key in object) {
+      if(predicate(object[key],key)){
+        result[key] = object[key]
+      }
+    }
+    return result
+  },
+
+  /**
+   * 这个方法类似 _.get， 除了如果解析到的值是一个函数的话，就绑定 this 到这个函数并返回执行后的结果。
+   * @param  {[Object]} object       [要检索的对象]
+   * @param  {[Array|string]} parh         [要解析的属性路径]
+   * @param  {[*]} defaultValue [如果值解析为 undefined，返回这个值]
+   * @return {[*]}              [返回解析后的值]
+   */
+  result: function(object,path,defaultValue){
+    var value = this.get(object, path, defaultValue)
+    return value === undefined ? defaultValue : typeof value === 'function' ? value.bind(this)() : value
+  },
+
+  /**
+   * 设置 object对象中对应 path 属性路径上的值，如果path不存在，则创建
+   * @param {[Object]} object [要修改的对象]
+   * @param {[Array|string]} path   [要设置的对象路径]
+   * @param {[*]} value  [要设置的值]
+   * @return {[Object]} [返回 object]
+   */
+  set: function(object,path,value){
+    var path = this.toPath(path)
+    path.reduce((acuu,curr,i,arr) => {
+      if(acuu[curr] == undefined && i!==arr.length-1){
+        acuu[curr] = {}
+      }else if(i === arr.length-1){
+        acuu[curr] = value
+      }
+      return acuu[curr]
+    },object)
+    return object
+  },
+
+  /**
+   * 创建一个object对象自身可枚举属性的键值对数组
+   * @param  {[Object]} object [要检索的对象]
+   * @return {[Array]}        [返回键值对的数组]
+   */
+  toPairs: function(object) {
+    return Object.entries(object)
+  },
+
+  /**
+   * 创建一个object对象自身和继承的可枚举属性的键值对数组。
+   * @param  {[Object]} object [要检索的对象]
+   * @return {[Array]}        [返回键值对的数组]
+   */
+  toPairsIn: function(object) {
+    let result = []
+    for(let key in object){
+      result.push([key,object[key]])
+    }
+    return result
+  },
+
+  transform: function(object,iteratee=this.identity,accumulator){
+
+  },
+
+  /**
+   * 移除object对象 path 路径上的属性
+   * @param  {[Object]} object [要修改的对象]
+   * @param  {[Array|string]} path   [要移除的对象路径]
+   * @return {[boolean]}        [如果移除成功，那么返回 true ，否则返回 false]
+   */
+  unset: function(object,path){
+    var path = this.toPath(path)
+    var temp = object
+    return path.reduce((acuu,curr,i,arr) => {
+      try{
+        if(i === arr.length-1){
+          if(acuu[curr] !== undefined){
+            delete acuu[curr]
+            return true
+          }else{
+            return false
+          }
+        }else{
+          return acuu[curr]
+        }
+      }catch(e){
+        return false
+      }
+    },object)
+  },
+
+  /**
+   * 该方法类似_.set，除了接受updater以生成要设置的值。使用 _.updateWith来自定义生成的新path。
+   * @param  {[Object]} object  [要修改的对象。]
+   * @param  {[Array|string]} path    [要设置属性的路径。]
+   * @param  {[Function]} updater [用来生成设置值的函数。]
+   * @return {[Object]}         [返回 object 。]
+   */
+  update: function(object,path,updater){
+    var path = this.toPath(path)
+    path.reduce((acuu,curr,i,arr) => {
+      if(acuu[curr] == undefined && i!==arr.length-1){
+        acuu[curr] = {}
+      }else if(i === arr.length-1){
+        acuu[curr] = updater(acuu[curr])
+      }
+      return acuu[curr]
+    },object)
+    return object
+  },
+
+  /**
+   * 创建 object 自身和继承的可枚举属性的值为数组 
+   * @param  {[Object]} object [要检索的对象]
+   * @return {[Array]}        [返回对象属性的值的数组]
+   */
   values: function(object) {
     return Object.values(object)
+  },
+
+  /**
+   * 创建 object 自身和继承的可枚举属性的值为数组 
+   * @param  {[Object]} object [要检索的对象]
+   * @return {[Array]}        [返回对象属性的值的数组]
+   */
+  values: function(object) {
+    let result = []
+    for(let key in object){
+      result.push(object[key])
+    }
+    return result
   },
 
   //String方法 **********************************************************
@@ -2352,12 +2946,12 @@ var luciferchiu = {
     omission = '...',
     separator
   } = {}) {
-    if(separator == undefined && str.length > length){
-      return str.substr(0,length-omission.length)+omission
-    }else if(str.length > length){
+    if (separator == undefined && str.length > length) {
+      return str.substr(0, length - omission.length) + omission
+    } else if (str.length > length) {
       var new_str = str.substr(0, length - omission.length);
       return new_str.substr(0, new_str.lastIndexOf(...new_str.match(new RegExp(separator, "g")).slice(-1))) + omission;
-    }else {
+    } else {
       return str
     }
   },
@@ -2367,7 +2961,7 @@ var luciferchiu = {
    * @param  {String} str [要转换的字符串]
    * @return {[string]}     [返回转换后的字符串]
    */
-  unescape: function(str='') {
+  unescape: function(str = '') {
     var arr = {
       "&amp;": "&",
       "&lt;": "<",
@@ -2375,7 +2969,7 @@ var luciferchiu = {
       "&quot;": '"',
       "&apos;": "'"
     }
-    return str.replace(/&amp;|&lt;|&gt;|&quot;|&apos;/g,it => arr[it])
+    return str.replace(/&amp;|&lt;|&gt;|&quot;|&apos;/g, it => arr[it])
   },
 
   /**
@@ -2383,7 +2977,7 @@ var luciferchiu = {
    * @param  {String} str [ 要转换的字符串]
    * @return {[type]}     [返回大写单词]
    */
-  upperCase: function(str=''){
+  upperCase: function(str = '') {
     return this.lowerCase(str).toUpperCase()
   },
 
@@ -2392,7 +2986,7 @@ var luciferchiu = {
    * @param  {String} str [要转换的字符串]
    * @return {[string]}     [返回转换后的字符串]
    */
-  upperFirst: function(str=''){
+  upperFirst: function(str = '') {
     return str[0].toUpperCase() + str.slice(1)
   },
 
@@ -2402,15 +2996,32 @@ var luciferchiu = {
    * @param  {[RegExp|string]} pattern [匹配模式。]
    * @return {[Array]}         [返回拆分string后的数组。]
    */
-  words: function(str='',pattern){
-    if(pattern === undefined) {
+  words: function(str = '', pattern) {
+    if (pattern === undefined) {
       return str.match(/\w+/g)
-    }else {
+    } else {
       return str.match(pattern)
     }
   },
 
   //辅助方法**************************************************************
+
+  /**
+   * 转化 value 为属性路径的数组
+   * @param  {[*]} value [要转换的值]
+   * @return {[Array]}       [返回包含属性路径的数组。]
+   */
+  toPath: function(value) {
+    if(Array.isArray(value)){
+      return value
+    }
+    //这个正则主要处理这种情况["["]，即"[","]"做属性key的情况
+    var path = value.split(/\.|(?=\[[^\[\]"]\])/g)
+    return path.map(it => {
+      return it.replace(/^\[|\]$/g, '').replace(/"/g, '')
+    })
+  },
+
   /**
    * 深度相等                                      
    * @param  {[type]}  o1 [description]
